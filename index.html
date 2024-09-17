@@ -99,8 +99,8 @@
             characters.forEach(character => {
                 character.score = 0;
                 updateScoreDisplay(character);
-                character.x = Math.floor(Math.random() * (gridSize - 5));
-                character.y = Math.floor(Math.random() * (gridSize - 5));
+                character.x = Math.floor(Math.random() * (gridSize - 6));
+                character.y = Math.floor(Math.random() * (gridSize - 6));
             });
 
             // Reset items and simulation step count
@@ -136,7 +136,7 @@
             // Draw items with labels
             items.forEach(item => {
                 let img = images[item.type];
-                ctx.drawImage(img, item.x * cellSize, item.y * cellSize, cellSize * 2, cellSize * 2); // Items are 2x size
+                ctx.drawImage(img, item.x * cellSize, item.y * cellSize, cellSize * 3, cellSize * 3); // Items are 3x size
 
                 // Draw item label
                 ctx.fillStyle = 'black';
@@ -151,7 +151,7 @@
 
                 // Draw character
                 let img = images[character.name];
-                ctx.drawImage(img, character.x * cellSize, character.y * cellSize, cellSize * 5, cellSize * 5); // Characters are 5x size
+                ctx.drawImage(img, character.x * cellSize, character.y * cellSize, cellSize * 6, cellSize * 6); // Characters are 6x size
 
                 // Draw character label
                 ctx.fillStyle = 'black';
@@ -163,9 +163,9 @@
         function moveCharacter(character) {
             const direction = Math.floor(Math.random() * 4);
             if (direction === 0 && character.x > 0) character.x--; // Left
-            else if (direction === 1 && character.x < gridSize - 5) character.x++; // Right
+            else if (direction === 1 && character.x < gridSize - 6) character.x++; // Right
             else if (direction === 2 && character.y > 0) character.y--; // Up
-            else if (direction === 3 && character.y < gridSize - 5) character.y++; // Down
+            else if (direction === 3 && character.y < gridSize - 6) character.y++; // Down
         }
 
         function checkCollision(character) {
@@ -173,10 +173,10 @@
                 const item = items[i];
                 // Check for collision (overlapping rectangles)
                 if (
-                    character.x < item.x + 2 &&
-                    character.x + 4 >= item.x &&
-                    character.y < item.y + 2 &&
-                    character.y + 4 >= item.y
+                    character.x < item.x + 3 &&
+                    character.x + 5 >= item.x &&
+                    character.y < item.y + 3 &&
+                    character.y + 5 >= item.y
                 ) {
                     if (item.type === 'food') {
                         character.score++;
@@ -192,8 +192,8 @@
 
         function spawnItem() {
             const itemType = Math.random() < 0.5 ? 'food' : 'fire';
-            const itemX = Math.floor(Math.random() * (gridSize - 2));
-            const itemY = Math.floor(Math.random() * (gridSize - 2));
+            const itemX = Math.floor(Math.random() * (gridSize - 3));
+            const itemY = Math.floor(Math.random() * (gridSize - 3));
             const lifespan = Math.floor(Math.random() * 36) + 5; // Random lifespan between 5 and 40
             items.push({ type: itemType, x: itemX, y: itemY, spawnTime: simulationStepCount, lifespan: lifespan });
         }
