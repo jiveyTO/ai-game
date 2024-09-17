@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simulation Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            background-color: #f0f0f0;
+        }
+        #scores {
+            margin-bottom: 10px;
+        }
+        #scores div {
+            display: inline-block;
+            margin-right: 20px;
+            font-size: 16px;
+        }
+        #startButton {
+            margin-bottom: 10px;
+            display: none; /* Hide the button until images are loaded */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Simulation Game</h1>
+
+    <div id="scores">
+        <div id="score-Mark">Mark: 0</div>
+        <div id="score-Jason">Jason: 0</div>
+        <div id="score-Kevin">Kevin: 0</div>
+        <div id="score-Chris">Chris: 0</div>
+    </div>
+
+    <button id="startButton">Start Simulation</button>
+
+    <canvas id="gameCanvas" width="1000" height="1000"></canvas>
+
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game variables
+        const gridSize = 200; // Grid size remains the same
+        const cellSize = canvas.width / gridSize;
+        const characters = [
+            { name: 'Mark', x: 0, y: 0, score: 0 },
+            { name: 'Jason', x: 0, y: 0, score: 0 },
+            { name: 'Kevin', x: 0, y: 0, score: 0 },
+            { name: 'Chris', x: 0, y: 0, score: 0 }
+        ];
+        let items = []; // Array to hold food and fire items
+        let simulationInterval;
+        let simulationStepCount = 0;
+
+        // Images for characters and items
+        const images = {
+            'Mark': new Image(),
+            'Jason': new Image(),
+            'Kevin': new Image(),
+            'Chris': new Image(),
+            'food': new Image(),
+            'fire': new Image()
+        };
+
+        // Image sources
+        const imageSources = {
+            'Mark': 'mark.png',     // Pixel humanoid image for Mark
+            'Jason': 'jason.png',   // Pixel humanoid image for Jason
+            'Kevin': 'kevin.png',   // Pixel humanoid image for Kevin
+            'Chris': 'chris.png',   // Pixel humanoid image for Chris
+            'food': 'food.png',     // Pixel image for food
+            'fire': 'fire.png'      // Pixel image for fire
+        };
+
+        // Load images and return a promise
+        function loadImages() {
+            const promises = [];
+            for (let key in images) {
+                promises.push(new Promise((resolve, reject) => {
+                    images[key].onload = () => {
+                        resolve();
+                    };
+                    images[key].onerror = () => {
+                        reject(new Error('Failed to load image: ' + imageSources[key]));
+                    };
+                    images[key].src = imageSources[key];
+                }));
+            }
+            return Promise.all(promises);
+        }
+
+        // Start button event listener
+        document.getElementById('startButton').addEventListener('click', startSimulation);
+
+        function startSimulation() {
+            // Reset scores and positions
+            characters.forEach(character => {
+                character.score = 0;
+                updateScoreDisplay(character);
+                character.x = Math.floor(Math.random() * (gridSize - 5));
+                character.y = Math.floor(Math.random() * (gridSize - 5));
+            });
+
+            // Reset items and simulation step count
+            items = [];
+            simulationStepCount = 0;
+
+            // Start background music
+            startBackgroundMusic();
+
+            // Start simulation loop
+            simulationInterval = setInterval(simulationStep, 1000);
+        }
+
+        function simulationStep() {
+            simulationStepCount++;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Remove items whose lifespan has expired
+            items = items.filter(item => {
+                return (simulationStepCount - item.spawnTime) <= item.lifespan;
+            });
+
+            // Ensure there are between 20 and 200 items
+            while (items.length < 20) {
+                spawnItem();
+            }
+            while (items.length < 200 && Math.random() < 0.7) {
+                spawnItem();
+            }
+
+            // Draw items with labels
+            items.forEach(item => {
+                let img = images[item.type];
+                ctx.drawImage(img, item.x * cellSize, item.y * cellSize, cellSize * 2, cellSize * 2); // Items are 2x size
+
+                // Draw item label
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(item.type, item.x * cellSize, item.y * cellSize - 2);
+            });
+
+            // Move and draw characters with labels
+            characters.forEach(character => {
+                moveCharacter(character);
+                checkCollision(character);
+
+                // Draw character
+                let img = images[character.name];
+                ctx.drawImage(img, character.x * cellSize, character.y * cellSize, cellSize * 5, cellSize * 5); // Characters are 5x size
+
+                // Draw character label
+                ctx.fillStyle = 'black';
+                ctx.font = '10px Arial';
+                ctx.fillText(character.name, character.x * cellSize, character.y * cellSize - 2);
+            });
+        }
+
+        function moveCharacter(character) {
+            const direction = Math.floor(Math.random() * 4);
+            if (direction === 0 && character.x > 0) character.x--; // Left
+            else if (direction === 1 && character.x < gridSize - 5) character.x++; // Right
+            else if (direction === 2 && character.y > 0) character.y--; // Up
+            else if (direction === 3 && character.y < gridSize - 5) character.y++; // Down
+        }
+
+        function checkCollision(character) {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                // Check for collision (overlapping rectangles)
+                if (
+                    character.x < item.x + 2 &&
+                    character.x + 4 >= item.x &&
+                    character.y < item.y + 2 &&
+                    character.y + 4 >= item.y
+                ) {
+                    if (item.type === 'food') {
+                        character.score++;
+                    } else if (item.type === 'fire') {
+                        character.score--;
+                    }
+                    updateScoreDisplay(character);
+                    items.splice(i, 1); // Remove the item
+                    break;
+                }
+            }
+        }
+
+        function spawnItem() {
+            const itemType = Math.random() < 0.5 ? 'food' : 'fire';
+            const itemX = Math.floor(Math.random() * (gridSize - 2));
+            const itemY = Math.floor(Math.random() * (gridSize - 2));
+            const lifespan = Math.floor(Math.random() * 36) + 5; // Random lifespan between 5 and 40
+            items.push({ type: itemType, x: itemX, y: itemY, spawnTime: simulationStepCount, lifespan: lifespan });
+        }
+
+        function updateScoreDisplay(character) {
+            document.getElementById(`score-${character.name}`).textContent = `${character.name}: ${character.score}`;
+        }
+
+        // Background music implementation
+        let audioContext;
+        let isMusicPlaying = false;
+
+        function startBackgroundMusic() {
+            if (isMusicPlaying) return; // Prevent multiple instances
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+            let noteIndex = 0;
+
+            function playNote() {
+                if (!audioContext) return;
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.frequency.setValueAtTime(notes[noteIndex % notes.length], audioContext.currentTime);
+                oscillator.type = 'triangle';
+
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // Volume control
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+
+                noteIndex++;
+                setTimeout(playNote, 500); // Play a note every 500ms
+            }
+
+            playNote();
+            isMusicPlaying = true;
+        }
+
+        // Wait for images to load before enabling the start button
+        loadImages().then(() => {
+            // Images are loaded
+            document.getElementById('startButton').style.display = 'inline-block';
+            console.log('All images loaded successfully.');
+        }).catch(error => {
+            console.error(error.message);
+            alert('Failed to load images. Please check the console for more details.');
+        });
+
+        // Stop simulation when window is closed
+        window.addEventListener('beforeunload', () => {
+            clearInterval(simulationInterval);
+            if (audioContext) {
+                audioContext.close();
+            }
+        });
+    </script>
+</body>
+</html>
